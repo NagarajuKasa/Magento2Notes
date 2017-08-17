@@ -1,6 +1,8 @@
-How to save extension attribute value to db
- 
- ===============================================================
+How to Add image_url attribute to the cart items response object using Extension Attributes.
+
+Expected Result: http://prntscr.com/g9holq
+
+===============================================================
  Step 1:  app/code/Ewall/Mobileshop/etc/extension_attributes.xml
  ===============================================================
  
