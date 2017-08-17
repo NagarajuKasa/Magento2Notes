@@ -9,10 +9,9 @@ How to save extension attribute value to db
  Step 2:  app/code/Ewall/Mobileshop/etc/extension_attributes.xml
  ===============================================================
  
- <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
-<extension_attributes for="Magento\Quote\Api\Data\CartInterface">
-        <attribute code="image_url" type="string" />
+ <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+<extension_attributes for="Magento\Quote\Api\Data\CartItemInterface">
+<attribute code="image_url" type="string"/>
 </extension_attributes>
 </config>
 
@@ -29,20 +28,23 @@ How to save extension attribute value to db
 ======================================================================
  Step 4: app/code/Ewall/Mobileshop/Observer/SalesQuoteLoadAfter.php
 =======================================================================
-
-<?php 
-
+<?php
+/**
+ * A Magento 2 module 
+ * Copyrights (C) 2017 
+ * 
+ */
 namespace Ewall\Mobileshop\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Catalog\Api\ProductRepositoryInterfaceFactory as ProductRepository;
 use Magento\Catalog\Helper\ImageFactory as ProductImageHelper;
 use Magento\Store\Model\StoreManagerInterface as StoreManager;
 use Magento\Store\Model\App\Emulation as AppEmulation;
-use Magento\Sales\Api\Data\CartItemExtensionFactory;
+use Magento\Quote\Api\Data\CartItemExtensionFactory;
 class SalesQuoteLoadAfter implements ObserverInterface
 {   
 
-		    /**
+	/**
          * @var ObjectManagerInterface
          */
         protected $_objectManager;
@@ -68,8 +70,8 @@ class SalesQuoteLoadAfter implements ObserverInterface
         protected $appEmulation;
 		
 		
-		/**
-         * @var OrderItemExtensionFactory
+	/**
+         * @var CartItemExtensionFactory
          */
         protected $extensionFactory;
 
@@ -80,7 +82,7 @@ class SalesQuoteLoadAfter implements ObserverInterface
          * @param \Magento\Catalog\Helper\ImageFactory
          * @param \Magento\Store\Model\StoreManagerInterface
          * @param \Magento\Store\Model\App\Emulation
-		     * @param OrderItemExtensionFactory $extensionFactory
+	 * @param CartItemExtensionFactory $extensionFactory
          */
         public function __construct(
             \Magento\Framework\ObjectManagerInterface $objectManager,
@@ -88,7 +90,7 @@ class SalesQuoteLoadAfter implements ObserverInterface
             ProductImageHelper $productImageHelper,
             StoreManager $storeManager,
             AppEmulation $appEmulation,
-			OrderItemExtensionFactory $extensionFactory
+	    CartItemExtensionFactory $extensionFactory
         ) {
             $this->_objectManager = $objectManager;
             $this->productRepository = $productRepository;
@@ -99,7 +101,7 @@ class SalesQuoteLoadAfter implements ObserverInterface
 			
         }
 
-		public function execute(\Magento\Framework\Event\Observer $observer)
+	public function execute(\Magento\Framework\Event\Observer $observer)
         {		
             $quote = $observer->getQuote();
             /**
@@ -110,16 +112,16 @@ class SalesQuoteLoadAfter implements ObserverInterface
                 $product = $this->productRepository->create()->getById($quoteItem->getProductId());
                 $itemExtAttr = $quoteItem->getExtensionAttributes();
                 if ($itemExtAttr === null) {
-                    $itemExtAttr = $this->itemExtensionFactory->create();
+                    $itemExtAttr = $this->extensionFactory->create();
                 }
-                $imageurl = $this->getImageUrl($product, 'product_image');					
+                $imageurl = $this->getImageUrl($product, 'product_base_image');					
                 $itemExtAttr->setImageUrl($imageurl);
                 $quoteItem->setExtensionAttributes($itemExtAttr);
             }
             return;
         }
 
-		/**
+	/**
          * Helper function that provides full cache image url
          * @param \Magento\Catalog\Model\Product
          * @return string
@@ -138,15 +140,44 @@ class SalesQuoteLoadAfter implements ObserverInterface
 }
 
 =============================================
-Step 5: now i have opend the postman
+Step 5: now opend the postman
 =============================================
-
-http://prntscr.com/g9hay1
+http://prntscr.com/g9holq
 
 =============================================
-Errors:-
+Imp Note:-
 ===============================================
-1) http://prntscr.com/g9h6xi
-2) removed the generation and did the di:compile it is saying undefined method setImageUrl()
+After di compile we need to check /var/generation/Magento/Quote/Api/Data/CartItemExtension.php
+new getter and setter methods will be added in CartItemExtension.php
+The file looks like as shown below
+
+<?php
+namespace Magento\Quote\Api\Data;
+
+/**
+ * Extension class for @see \Magento\Quote\Api\Data\CartItemInterface
+ */
+class CartItemExtension extends \Magento\Framework\Api\AbstractSimpleObject implements \Magento\Quote\Api\Data\CartItemExtensionInterface
+{
+    /**
+     * @return string|null
+     */
+    public function getImageUrl()
+    {
+        return $this->_get('image_url');
+    }
+
+    /**
+     * @param string $imageUrl
+     * @return $this
+     */
+    public function setImageUrl($imageUrl)
+    {
+        $this->setData('image_url', $imageUrl);
+        return $this;
+    }
+}
+
+
 
 
