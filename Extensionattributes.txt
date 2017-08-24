@@ -1,0 +1,188 @@
+How to Add image_url attribute to the cart items response object using Extension Attributes.
+
+Expected Result: http://prntscr.com/g9holq
+
+===============================================================
+ Step 1:  app/code/Ewall/Mobileshop/etc/extension_attributes.xml
+ ===============================================================
+ 
+ <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+<extension_attributes for="Magento\Quote\Api\Data\CartItemInterface">
+<attribute code="image_url" type="string"/>
+</extension_attributes>
+</config>
+
+ ===============================================================
+ Step 2:  app/code/Ewall/Mobileshop/etc/events.xml
+ ===============================================================
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_quote_load_after">
+        <observer name="ewall_mobileshop_sales_quote_load_after" instance="Ewall\Mobileshop\Observer\SalesQuoteLoadAfter" />
+    </event>
+</config>
+
+======================================================================
+ Step 3: app/code/Ewall/Mobileshop/Observer/SalesQuoteLoadAfter.php
+=======================================================================
+<?php
+/**
+ * A Magento 2 module 
+ * Copyrights (C) 2017 
+ * 
+ */
+namespace Ewall\Mobileshop\Observer;
+use Magento\Framework\Event\ObserverInterface;
+use Magento\Catalog\Api\ProductRepositoryInterfaceFactory as ProductRepository;
+use Magento\Catalog\Helper\ImageFactory as ProductImageHelper;
+use Magento\Store\Model\StoreManagerInterface as StoreManager;
+use Magento\Store\Model\App\Emulation as AppEmulation;
+use Magento\Quote\Api\Data\CartItemExtensionFactory;
+class SalesQuoteLoadAfter implements ObserverInterface
+{   
+
+	/**
+         * @var ObjectManagerInterface
+         */
+        protected $_objectManager;
+
+        /**
+         * @var ProductRepository
+         */
+        protected $productRepository;
+
+        /**
+         *@var \Magento\Catalog\Helper\ImageFactory
+         */
+        protected $productImageHelper;
+
+        /**
+         *@var \Magento\Store\Model\StoreManagerInterface
+         */
+        protected $storeManager;
+
+        /**
+         *@var \Magento\Store\Model\App\Emulation
+         */
+        protected $appEmulation;
+		
+		
+	/**
+         * @var CartItemExtensionFactory
+         */
+        protected $extensionFactory;
+
+        
+        /**
+         * @param \Magento\Framework\ObjectManagerInterface $objectManager
+         * @param  ProductRepository $productRepository
+         * @param \Magento\Catalog\Helper\ImageFactory
+         * @param \Magento\Store\Model\StoreManagerInterface
+         * @param \Magento\Store\Model\App\Emulation
+	 * @param CartItemExtensionFactory $extensionFactory
+         */
+        public function __construct(
+            \Magento\Framework\ObjectManagerInterface $objectManager,
+            ProductRepository $productRepository,
+            ProductImageHelper $productImageHelper,
+            StoreManager $storeManager,
+            AppEmulation $appEmulation,
+	    CartItemExtensionFactory $extensionFactory
+        ) {
+            $this->_objectManager = $objectManager;
+            $this->productRepository = $productRepository;
+            $this->productImageHelper = $productImageHelper;
+            $this->storeManager = $storeManager;
+            $this->appEmulation = $appEmulation;
+            $this->extensionFactory = $extensionFactory;
+			
+        }
+
+	public function execute(\Magento\Framework\Event\Observer $observer)
+        {		
+            $quote = $observer->getQuote();
+            /**
+             * Code to add the items attribute to extension_attributes
+             */
+            foreach ($quote->getAllItems() as $quoteItem) {			
+				
+                $product = $this->productRepository->create()->getById($quoteItem->getProductId());
+                $itemExtAttr = $quoteItem->getExtensionAttributes();
+                if ($itemExtAttr === null) {
+                    $itemExtAttr = $this->extensionFactory->create();
+                }
+                $imageurl = $this->getImageUrl($product, 'product_base_image');					
+                $itemExtAttr->setImageUrl($imageurl);
+                $quoteItem->setExtensionAttributes($itemExtAttr);
+            }
+            return;
+        }
+
+	/**
+         * Helper function that provides full cache image url
+         * @param \Magento\Catalog\Model\Product
+         * @return string
+         */
+        protected function getImageUrl($product, string $imageType = '')
+        {
+            $storeId = $this->storeManager->getStore()->getId();
+
+            $this->appEmulation->startEnvironmentEmulation($storeId, \Magento\Framework\App\Area::AREA_FRONTEND, true);
+            $imageUrl = $imageUrl = $this->productImageHelper->create()->init($product, $imageType)->getUrl();
+
+            $this->appEmulation->stopEnvironmentEmulation();
+
+            return $imageUrl;
+        }
+}
+
+=============================================
+Step 4: now opend the postman
+=============================================
+Now check the Api urls following as shown below
+
+GET: /rest/V1/carts/43
+(or) 
+GET: rest/V1/carts/mine 
+(or) 
+GET: /rest/V1/guest-carts/7de299475ea4d42ec0574dc569f03d88/items
+
+http://prntscr.com/g9holq
+
+=============================================
+Step 5: Imp Note:-
+===============================================
+After di compile we need to check /var/generation/Magento/Quote/Api/Data/CartItemExtension.php
+new getter and setter methods will be added in CartItemExtension.php
+The file looks like as shown below
+
+<?php
+namespace Magento\Quote\Api\Data;
+
+/**
+ * Extension class for @see \Magento\Quote\Api\Data\CartItemInterface
+ */
+class CartItemExtension extends \Magento\Framework\Api\AbstractSimpleObject implements \Magento\Quote\Api\Data\CartItemExtensionInterface
+{
+    /**
+     * @return string|null
+     */
+    public function getImageUrl()
+    {
+        return $this->_get('image_url');
+    }
+
+    /**
+     * @param string $imageUrl
+     * @return $this
+     */
+    public function setImageUrl($imageUrl)
+    {
+        $this->setData('image_url', $imageUrl);
+        return $this;
+    }
+}
+
+
+
+
