@@ -1,6 +1,11 @@
 <?php
+/**
+ * A Magento 2 module named Ewall/Mobileshop
+ * Copyright (C) 2017  Ewall Solutions Pvt Ltd
+ * 
+ */
 
-namespace Test\Custom\Model;
+namespace Ewall\Mobileshop\Model;
 use Magento\Framework\Api\SortOrder;
 use Ewall\Mobileshop\Api\ConfigurableProductsInterface;
 use Magento\Store\Model\App\Emulation as AppEmulation;
