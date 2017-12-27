@@ -1,13 +1,13 @@
 <?php
 /**
- * A Magento 2 module named Ewall/Mobileshop
- * Copyright (C) 2017  Ewall Solutions Pvt Ltd
+ * A Magento 2 module named Test/Custom
+ * Copyright (C) 2017 
  * 
  */
 
-namespace Ewall\Mobileshop\Model;
+namespace Test\Custom\Model;
 use Magento\Framework\Api\SortOrder;
-use Ewall\Mobileshop\Api\ConfigurableProductsInterface;
+use Test\Custom\Api\ConfigurableProductsInterface;
 use Magento\Store\Model\App\Emulation as AppEmulation;
 use Magento\Catalog\Helper\ImageFactory as ProductImageHelper;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
